@@ -1,0 +1,66 @@
+
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Apr 22 13:31:17 2021
+
+@author: viloh654
+"""
+
+import numpy as np 
+import cv2
+
+cap = cv2.VideoCapture('sex.mov')
+
+while(cap.isOpened()):
+    _, imageFrame = cap.read()
+    
+    hsvFrame = cv2.cvtColor(imageFrame, cv2.COLOR_BGR2HSV)
+    
+    red_lower = np.array([136, 87, 111], np.uint8)
+    red_upper = np.array([180, 255, 255], np.uint8)
+    red_mask = cv2.inRange(hsvFrame, red_lower, red_upper)
+    
+    kernal = np.ones((5, 5), "uint8")
+    
+    red_mask = cv2.dilate(red_mask, kernal)
+    res_red = cv2.bitwise_and(imageFrame, imageFrame,
+                              mask = red_mask)
+    
+    contours, hierarcy = cv2.findContours(red_mask,
+                                          cv2.RETR_TREE,
+                                          cv2.CHAIN_APPROX_SIMPLE)
+    
+    for pic, contour in enumerate(contours):
+        area = cv2.contourArea(contour)
+        if(area > 300):
+            x, y, w, h = cv2.boundingRect(contour)
+            imageFrame = cv2.rectangle(imageFrame, (x, y),
+                                       (x + w, y + h),
+                                       (0, 0, 255), 2)
+            
+            cv2.putText(imageFrame, " ", (x, y),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.0,
+                        (0, 255, 255))
+            
+        x2 = x+int(w/2)
+        y2 = y+int(h/2)
+        cv2.circle(imageFrame,(x2,y2),4,(0,255,0),-1)
+        
+        text = "x: " + str(x2) + ", y: " + str(y2)
+        cv2.putText(imageFrame, text,(x2-10,y2-10),
+        cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 0, 0), 4) #0, 100, 20
+        
+        #imageFrames = cv2.resize(imageFrame, (800,1200))
+        percent = 70
+        width = int(imageFrame.shape[1] * percent/100)
+        height = int(imageFrame.shape[0] * percent/100)
+        
+        dsize = (width, height)
+        output = cv2.resize(imageFrame, dsize)
+        
+        cv2.imshow("Multiple Color Detection in Real Time", output)
+        
+        if cv2.waitKey(10) & 0xFF == ord(' '):
+            cap.release() 
+            cv2.destroyAllWindows()
+            break
